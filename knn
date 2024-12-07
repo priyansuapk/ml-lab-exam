@@ -1,0 +1,62 @@
+import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import KFold
+from sklearn.metrics import accuracy_score
+from sklearn.neighbors import KNeighborsClassifier
+
+# Load Breast Cancer dataset
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+# Implement KNN from scratch
+class KNNFromScratch:
+    def __init__(self, k=3):
+        self.k = k
+    
+    def fit(self, X, y):
+        self.X_train = X
+        self.y_train = y
+    
+    def predict(self, X):
+        predictions = [self._predict_single(x) for x in X]
+        return np.array(predictions)
+    
+    def _predict_single(self, x):
+        # Compute distances to all training samples
+        distances = np.linalg.norm(self.X_train - x, axis=1)
+        # Get indices of the k-nearest neighbors
+        k_indices = np.argsort(distances)[:self.k]
+        # Get the labels of the k-nearest neighbors
+        k_labels = self.y_train[k_indices]
+        # Return the most common label
+        return np.bincount(k_labels).argmax()
+
+# Cross-validation setup
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Store accuracies
+knn_scratch_accuracies = []
+knn_builtin_accuracies = []
+
+for train_index, test_index in kf.split(X):
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    
+    # KNN from scratch
+    knn_scratch = KNNFromScratch(k=3)
+    knn_scratch.fit(X_train, y_train)
+    y_pred_scratch = knn_scratch.predict(X_test)
+    knn_scratch_accuracies.append(accuracy_score(y_test, y_pred_scratch))
+    
+    # KNN using scikit-learn
+    knn_builtin = KNeighborsClassifier(n_neighbors=3)
+    knn_builtin.fit(X_train, y_train)
+    y_pred_builtin = knn_builtin.predict(X_test)
+    knn_builtin_accuracies.append(accuracy_score(y_test, y_pred_builtin))
+
+# Calculate average accuracies
+scratch_avg_accuracy = np.mean(knn_scratch_accuracies)
+builtin_avg_accuracy = np.mean(knn_builtin_accuracies)
+
+print(f"KNN From Scratch Average Accuracy: {scratch_avg_accuracy * 100:.2f}%")
+print(f"KNN Built-in Average Accuracy: {builtin_avg_accuracy * 100:.2f}%")
